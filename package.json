@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "vercel-build": "npm install --include=optional sharp && next build --webpack"
+    "vercel-build": "npm install --include=optional sharp && next build"
   },
   "dependencies": {
     "mongoose": "^9.7.3",
