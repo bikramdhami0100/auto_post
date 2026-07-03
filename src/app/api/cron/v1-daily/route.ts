@@ -110,12 +110,65 @@ async function processPost(
   };
 }
 
+async function processPostDryRun(
+  slotIndex: number,
+  category: ReturnType<typeof getSlotCategory>
+) {
+  const subType = getTodaySubType(category);
+  const targetLanguage = getTargetLanguage(subType);
+
+  const content: AIContent = await generateContent(category, subType, targetLanguage);
+
+  const caption = `${content.title}\n\n${content.content_body}\n\n${(content.hashtags || []).join(" ")}`;
+
+  let imageBuffers: Buffer[];
+
+  if (category === "language" && content.word_list?.length) {
+    const slides = content.word_list.map((w) => ({
+      text: `${w.nepali}\n${w.target}`,
+      title: w.example,
+    }));
+    imageBuffers = await generateCarouselImages(slides);
+  } else {
+    imageBuffers = [await generateImage(content.content_body, undefined, content.title)];
+  }
+
+  return {
+    slot: slotIndex,
+    category,
+    sub_type: subType,
+    title: content.title,
+    content_body: content.content_body,
+    caption,
+    hashtags: content.hashtags || [],
+    word_list: content.word_list || [],
+    image_prompt: content.image_prompt,
+    image_count: imageBuffers.length,
+    preview_image_base64: `data:image/png;base64,${imageBuffers[0].toString("base64")}`,
+  };
+}
+
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const dryRun = request.nextUrl.searchParams.get("dryrun") === "true";
+
   try {
+    if (dryRun) {
+      const slot = parseInt(request.nextUrl.searchParams.get("slot") || "0", 10);
+      const category = getSlotCategory(slot);
+      const post = await processPostDryRun(slot, category);
+
+      return NextResponse.json({
+        status: "dryrun",
+        message: "Content generated but NOT posted to any platform",
+        date: getTodayDateString(),
+        post,
+      });
+    }
+
     await connectDB();
     const date = getTodayDateString();
     const postsPerDay = Math.min(3, Math.max(1, parseInt(process.env.POSTS_PER_DAY || "2", 10) || 2));
