@@ -1,7 +1,21 @@
 import sharp from "sharp";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
+
+let fontFaceStyle = "";
+try {
+  const regular = readFileSync(join(process.cwd(), "public/fonts/NotoSansDevanagari-Regular.ttf")).toString("base64");
+  const bold = readFileSync(join(process.cwd(), "public/fonts/NotoSansDevanagari-Bold.ttf")).toString("base64");
+  fontFaceStyle = `<style>
+    @font-face{font-family:'ND';src:url('data:font/ttf;base64,${regular}') format('truetype');font-weight:normal}
+    @font-face{font-family:'ND';src:url('data:font/ttf;base64,${bold}') format('truetype');font-weight:bold}
+  </style>`;
+} catch {}
+
+const FONT = "ND, 'Noto Sans Devanagari', Arial, sans-serif";
 
 function wrapText(text: string, maxChars: number): string[] {
   const words = text.split(" ");
@@ -41,26 +55,26 @@ export async function generateImage(
   const startY = Math.max((HEIGHT - totalHeight) / 2, 100);
 
   let svg = `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-    <rect width="100%" height="100%" fill="#000000"/>`;
+    <rect width="100%" height="100%" fill="#000000"/>${fontFaceStyle}`;
 
   let y = startY;
 
   for (const line of titleLines) {
-    svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="64" fill="#FFFFFF">${escapeXml(line)}</text>`;
+    svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="${FONT}" font-weight="bold" font-size="64" fill="#FFFFFF">${escapeXml(line)}</text>`;
     y += 90;
   }
 
   y += 40;
 
   for (const line of lines) {
-    svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" fill="#FFFFFF">${escapeXml(line)}</text>`;
+    svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="${FONT}" font-size="48" fill="#FFFFFF">${escapeXml(line)}</text>`;
     y += 75;
   }
 
   if (citation) {
     y += 30;
     for (const line of citeLines) {
-      svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="Arial, sans-serif" font-style="italic" font-size="40" fill="#AAAAAA">${escapeXml(line)}</text>`;
+      svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="${FONT}" font-style="italic" font-size="40" fill="#AAAAAA">${escapeXml(line)}</text>`;
       y += 55;
     }
   }
