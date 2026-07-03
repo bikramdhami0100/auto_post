@@ -10,7 +10,7 @@ export async function GET() {
       "असफलता सफलताको सिँढी हो",
       "— जे.के. रोलिङ"
     );
-    return new NextResponse(buf, {
+    return new NextResponse(new Uint8Array(buf), {
       headers: { "Content-Type": "image/png" },
     });
   } catch {
