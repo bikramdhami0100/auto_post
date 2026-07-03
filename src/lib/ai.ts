@@ -24,9 +24,11 @@ The JSON must contain the following keys:
 Category: "motivation"
 Sub-type: "${subType}"
 
+Write ALL text in Nepali language (नेपालीमा).
 Generate a powerful, short motivational speech or quote (2-4 sentences) taken from
 a famous book, economic principle, or business leader. Make it actionable and
 inspiring for entrepreneurs. Include the author's name and the book's name if applicable.
+The title should be in Nepali. The content_body must be entirely in Nepali.
 Output JSON.`;
 
     case "enlightenment":
@@ -35,8 +37,10 @@ Output JSON.`;
 Category: "enlightenment"
 Sub-type: "${subType}"
 
+Write ALL text in Nepali language (नेपालीमा).
 Generate a deep, philosophical thought about mindfulness, inner peace, or self-awareness.
 Keep it concise (2-3 sentences) but profound. Make it relatable to modern daily life.
+The title should be in Nepali. The content_body must be entirely in Nepali.
 Output JSON.`;
 
     case "language":
