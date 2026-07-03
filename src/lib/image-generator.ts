@@ -1,17 +1,16 @@
-import { createCanvas } from "@napi-rs/canvas";
+import sharp from "sharp";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
 
-function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+function wrapText(text: string, maxChars: number): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
   let current = "";
 
   for (const word of words) {
-    const test = current ? `${current} ${word}` : word;
-    if (ctx.measureText(test).width <= maxWidth) {
-      current = test;
+    if ((current + " " + word).trim().length <= maxChars) {
+      current = (current + " " + word).trim();
     } else {
       if (current) lines.push(current);
       current = word;
@@ -21,97 +20,63 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
+function escapeXml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
 export async function generateImage(
   text: string,
   title?: string,
   citation?: string
 ): Promise<Buffer> {
-  const canvas = createCanvas(WIDTH, HEIGHT);
-  const ctx = canvas.getContext("2d");
+  const maxChars = 28;
+  const lines = wrapText(text, maxChars);
+  const titleLines = title ? wrapText(title, maxChars) : [];
+  const citeLines = citation ? wrapText(citation, maxChars) : [];
 
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  const titleHeight = titleLines.length * 90;
+  const bodyHeight = lines.length * 75;
+  const citeHeight = citeLines.length * 60;
+  const totalHeight = titleHeight + bodyHeight + citeHeight + 100;
+  const startY = Math.max((HEIGHT - totalHeight) / 2, 100);
 
-  const maxWidth = WIDTH * 0.8;
-  const centerX = WIDTH / 2;
+  let svg = `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="#000000"/>`;
 
-  let y = HEIGHT * 0.25;
+  let y = startY;
 
-  if (title) {
-    ctx.font = "bold 64px Arial, Helvetica, sans-serif";
-    ctx.fillStyle = "#FFFFFF";
-    ctx.textAlign = "center";
-    const lines = wrapText(ctx, title, maxWidth);
-    for (const line of lines) {
-      ctx.fillText(line, centerX, y);
-      y += 90;
-    }
-    y += 40;
+  for (const line of titleLines) {
+    svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="64" fill="#FFFFFF">${escapeXml(line)}</text>`;
+    y += 90;
   }
 
-  ctx.font = "48px Arial, Helvetica, sans-serif";
-  ctx.fillStyle = "#FFFFFF";
-  ctx.textAlign = "center";
-  const bodyLines = wrapText(ctx, text, maxWidth);
-  for (const line of bodyLines) {
-    ctx.fillText(line, centerX, y);
+  y += 40;
+
+  for (const line of lines) {
+    svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" fill="#FFFFFF">${escapeXml(line)}</text>`;
     y += 75;
   }
 
   if (citation) {
     y += 30;
-    ctx.font = "italic 40px Arial, Helvetica, sans-serif";
-    ctx.fillStyle = "#AAAAAA";
-    ctx.textAlign = "center";
-    const lines = wrapText(ctx, citation, maxWidth);
-    for (const line of lines) {
-      ctx.fillText(line, centerX, y);
+    for (const line of citeLines) {
+      svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="Arial, sans-serif" font-style="italic" font-size="40" fill="#AAAAAA">${escapeXml(line)}</text>`;
       y += 55;
     }
   }
 
-  return canvas.toBuffer("image/png");
+  svg += "</svg>";
+
+  return sharp({
+    create: { width: WIDTH, height: HEIGHT, channels: 3, background: { r: 0, g: 0, b: 0 } },
+  })
+    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .png()
+    .toBuffer();
 }
 
 export async function generateCarouselImages(
   items: { text: string; title?: string }[]
 ): Promise<Buffer[]> {
-  const canvas = createCanvas(WIDTH, HEIGHT);
-  const ctx = canvas.getContext("2d");
-  const maxWidth = WIDTH * 0.8;
-  const centerX = WIDTH / 2;
-
-  const buffers: Buffer[] = [];
-
-  for (const item of items) {
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
-
-    let y = HEIGHT * 0.3;
-
-    if (item.title) {
-      ctx.font = "bold 56px Arial, Helvetica, sans-serif";
-      ctx.fillStyle = "#FFFFFF";
-      ctx.textAlign = "center";
-      const lines = wrapText(ctx, item.title, maxWidth);
-      for (const line of lines) {
-        ctx.fillText(line, centerX, y);
-        y += 80;
-      }
-      y += 30;
-    }
-
-    ctx.font = "40px Arial, Helvetica, sans-serif";
-    ctx.fillStyle = "#FFFFFF";
-    ctx.textAlign = "center";
-    const bodyLines = wrapText(ctx, item.text, maxWidth);
-    for (const line of bodyLines) {
-      ctx.fillText(line, centerX, y);
-      y += 65;
-    }
-
-    buffers.push(canvas.toBuffer("image/png"));
-  }
-
-  return buffers;
+  return Promise.all(items.map((item) => generateImage(item.text, item.title)));
 }
