@@ -11,7 +11,11 @@ import { generateContent } from "@/lib/ai";
 import { generateCarouselImages, generateImage } from "@/lib/image-generator";
 import { postToFacebook } from "@/lib/facebook";
 import { postToTikTok } from "@/lib/tiktok";
+import { downloadGoogleFonts } from "@/lib/fonts";
 import type { AIContent, PostResult } from "@/lib/types";
+
+// Preload fonts at server start
+downloadGoogleFonts().catch((err) => console.error("Font preload failed:", err));
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;

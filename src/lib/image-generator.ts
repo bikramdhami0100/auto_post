@@ -1,11 +1,17 @@
-import { createCanvas, registerFont } from "canvas";
-import { join } from "path";
+import { createCanvas, CanvasRenderingContext2D } from "canvas";
+import { initCanvasFonts } from "./fonts";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
+const FONT_FAMILY = "ND";
 
-registerFont(join(process.cwd(), "public/fonts/NotoSansDevanagari-Regular.ttf"), { family: "ND" });
-registerFont(join(process.cwd(), "public/fonts/NotoSansDevanagari-Bold.ttf"), { family: "ND", weight: "bold" });
+let fontsInitialized = false;
+
+async function ensureFonts(): Promise<void> {
+  if (fontsInitialized) return;
+  await initCanvasFonts();
+  fontsInitialized = true;
+}
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const words = text.split(" ");
@@ -30,6 +36,8 @@ export async function generateImage(
   title?: string,
   citation?: string
 ): Promise<Buffer> {
+  await ensureFonts();
+
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext("2d");
 
@@ -42,7 +50,7 @@ export async function generateImage(
   let y = HEIGHT * 0.25;
 
   if (title) {
-    ctx.font = "bold 64px ND";
+    ctx.font = `bold 64px ${FONT_FAMILY}`;
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "center";
     const lines = wrapText(ctx, title, maxWidth);
@@ -53,7 +61,7 @@ export async function generateImage(
     y += 40;
   }
 
-  ctx.font = "48px ND";
+  ctx.font = `48px ${FONT_FAMILY}`;
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
   const bodyLines = wrapText(ctx, text, maxWidth);
@@ -64,7 +72,7 @@ export async function generateImage(
 
   if (citation) {
     y += 30;
-    ctx.font = "italic 40px ND";
+    ctx.font = `italic 40px ${FONT_FAMILY}`;
     ctx.fillStyle = "#AAAAAA";
     ctx.textAlign = "center";
     const lines = wrapText(ctx, citation, maxWidth);
@@ -80,5 +88,6 @@ export async function generateImage(
 export async function generateCarouselImages(
   items: { text: string; title?: string }[]
 ): Promise<Buffer[]> {
+  await ensureFonts();
   return Promise.all(items.map((item) => generateImage(item.text, item.title)));
 }

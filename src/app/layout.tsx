@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { notoDevanagari } from "@/lib/fonts";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,7 +27,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${notoDevanagari.variable} h-full antialiased`}
     >
       <head>
         <meta name="tiktok-developers-site-verification" content="jZPvNIQ6DOgf1vc4qwSKTYIzOD2FdQzS" />
