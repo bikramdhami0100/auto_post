@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { ContentLogModel } from "@/models/ContentLog";
-import { getTodayCategory, getTodaySubType, getTargetLanguage, getTodayDateString } from "@/lib/scheduler";
+import {
+  getSlotCategory,
+  getTodaySubType,
+  getTargetLanguage,
+  getTodayDateString,
+} from "@/lib/scheduler";
 import { generateContent } from "@/lib/ai";
 import { generateCarouselImages, generateImage } from "@/lib/image-generator";
 import { postToFacebook } from "@/lib/facebook";
@@ -9,7 +14,7 @@ import { postToTikTok } from "@/lib/tiktok";
 import type { AIContent, PostResult } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 function isAuthorized(request: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;
@@ -21,6 +26,90 @@ function isAuthorized(request: NextRequest): boolean {
   return auth === `Bearer ${secret}` || querySecret === secret;
 }
 
+async function processPost(
+  date: string,
+  slotIndex: number,
+  category: ReturnType<typeof getSlotCategory>
+): Promise<{
+  title: string;
+  content_body: string;
+  hashtags: string[];
+  word_list: AIContent["word_list"];
+  facebook: PostResult["facebook"];
+  tiktok: PostResult["tiktok"];
+}> {
+  const subType = getTodaySubType(category);
+  const targetLanguage = getTargetLanguage(subType);
+
+  const content: AIContent = await generateContent(category, subType, targetLanguage);
+
+  const caption = `${content.title}\n\n${content.content_body}\n\n${(content.hashtags || []).join(" ")}`;
+
+  let imageBuffers: Buffer[];
+  let facebookImage: Buffer;
+
+  if (category === "language" && content.word_list?.length) {
+    const slides = content.word_list.map((w) => ({
+      text: `${w.nepali}\n${w.target}`,
+      title: w.example,
+    }));
+
+    imageBuffers = await generateCarouselImages(slides);
+    facebookImage = imageBuffers[0];
+  } else {
+    facebookImage = await generateImage(content.content_body, undefined, content.title);
+    imageBuffers = [facebookImage];
+  }
+
+  const result = {
+    facebook: { success: false } as PostResult["facebook"],
+    tiktok: { success: false } as PostResult["tiktok"],
+  };
+
+  if (process.env.FACEBOOK_PAGE_ID && process.env.FACEBOOK_PAGE_ACCESS_TOKEN) {
+    if (slotIndex === 0) {
+      try {
+        const fbId = await postToFacebook(facebookImage, caption);
+        result.facebook = { success: true, post_id: fbId };
+      } catch (err: unknown) {
+        result.facebook = { success: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+  }
+
+  if (process.env.TIKTOK_ACCESS_TOKEN) {
+    try {
+      const ttId = await postToTikTok(imageBuffers, caption);
+      result.tiktok = { success: true, post_id: ttId };
+    } catch (err: unknown) {
+      result.tiktok = { success: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  await ContentLogModel.create({
+    date,
+    slot: slotIndex,
+    category,
+    sub_type: subType,
+    title: content.title,
+    content_body: content.content_body,
+    word_list: content.word_list || [],
+    hashtags: content.hashtags || [],
+    facebook_post_id: result.facebook.post_id || null,
+    tiktok_post_id: result.tiktok.post_id || null,
+    posted: true,
+  });
+
+  return {
+    title: content.title,
+    content_body: content.content_body,
+    hashtags: content.hashtags || [],
+    word_list: content.word_list,
+    facebook: result.facebook,
+    tiktok: result.tiktok,
+  };
+}
+
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -28,104 +117,39 @@ export async function POST(request: NextRequest) {
 
   try {
     await connectDB();
-
     const date = getTodayDateString();
-    const existing = await ContentLogModel.findOne({ date, posted: true });
+    const postsPerDay = Math.min(3, Math.max(1, parseInt(process.env.POSTS_PER_DAY || "2", 10) || 2));
+    const slot = parseInt(request.nextUrl.searchParams.get("slot") || "-1", 10);
 
-    if (existing) {
-      return NextResponse.json({
-        status: "skipped",
-        message: "Content already posted for today",
-        date,
-        facebook_post_id: existing.facebook_post_id,
-        tiktok_post_id: existing.tiktok_post_id,
-      });
-    }
+    const results = [];
 
-    const category = getTodayCategory();
-    const subType = getTodaySubType(category);
-    const targetLanguage = getTargetLanguage(subType);
+    if (slot >= 0) {
+      const existing = await ContentLogModel.findOne({ date, slot, posted: true });
+      if (existing) {
+        return NextResponse.json({ status: "skipped", message: `Slot ${slot} already posted today`, date, slot });
+      }
 
-    const content: AIContent = await generateContent(category, subType, targetLanguage);
-
-    const caption = `${content.title}\n\n${content.content_body}\n\n${(content.hashtags || []).join(" ")}`;
-
-    let imageBuffers: Buffer[];
-    let facebookImage: Buffer;
-
-    if (category === "language" && content.word_list?.length) {
-      const slides = content.word_list.map((w) => ({
-        text: `${w.nepali}\n${w.target}`,
-        title: w.example,
-      }));
-
-      imageBuffers = await generateCarouselImages(slides);
-      facebookImage = imageBuffers[0];
+      const category = getSlotCategory(slot);
+      const post = await processPost(date, slot, category);
+      results.push({ slot, category, ...post });
     } else {
-      facebookImage = await generateImage(content.content_body, undefined, content.title);
-      imageBuffers = [facebookImage];
-    }
+      for (let i = 0; i < postsPerDay; i++) {
+        const existing = await ContentLogModel.findOne({ date, slot: i, posted: true });
+        if (existing) {
+          results.push({ slot: i, status: "skipped", message: "Already posted" });
+          continue;
+        }
 
-    const result: PostResult = {
-      facebook: { success: false },
-      tiktok: { success: false },
-    };
-
-    if (process.env.FACEBOOK_PAGE_ID && process.env.FACEBOOK_PAGE_ACCESS_TOKEN) {
-      try {
-        const fbId = await postToFacebook(facebookImage, caption);
-        result.facebook = { success: true, post_id: fbId };
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        result.facebook = { success: false, error: message };
+        const category = getSlotCategory(i);
+        const post = await processPost(date, i, category);
+        results.push({ slot: i, category, ...post });
       }
     }
 
-    if (process.env.TIKTOK_ACCESS_TOKEN) {
-      try {
-        const ttId = await postToTikTok(imageBuffers, caption);
-        result.tiktok = { success: true, post_id: ttId };
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        result.tiktok = { success: false, error: message };
-      }
-    }
-
-    const log = await ContentLogModel.create({
-      date,
-      category,
-      sub_type: subType,
-      title: content.title,
-      content_body: content.content_body,
-      word_list: content.word_list || [],
-      hashtags: content.hashtags || [],
-      facebook_post_id: result.facebook.post_id || null,
-      tiktok_post_id: result.tiktok.post_id || null,
-      posted: true,
-    });
-
-    return NextResponse.json({
-      status: "success",
-      date,
-      category,
-      sub_type: subType,
-      title: content.title,
-      content_body: content.content_body,
-      hashtags: content.hashtags,
-      word_count: content.word_list?.length || 0,
-      platforms: result,
-      log_id: log._id,
-    });
+    return NextResponse.json({ status: "success", date, posts: results });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("Cron job failed:", message);
-
-    return NextResponse.json(
-      {
-        status: "error",
-        error: message,
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ status: "error", error: message }, { status: 500 });
   }
 }

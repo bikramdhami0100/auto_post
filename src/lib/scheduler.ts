@@ -82,3 +82,13 @@ export function getTodayDateString(): string {
   now.setHours(now.getHours() + 5.75);
   return now.toISOString().split("T")[0];
 }
+
+const SLOT_CATEGORIES: ContentCategory[] = [
+  "motivation",
+  "enlightenment",
+  "language",
+];
+
+export function getSlotCategory(slotIndex: number): ContentCategory {
+  return SLOT_CATEGORIES[slotIndex % SLOT_CATEGORIES.length];
+}
