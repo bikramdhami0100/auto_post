@@ -28,6 +28,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <meta name="tiktok-developers-site-verification" content="jZPvNIQ6DOgf1vc4qwSKTYIzOD2FdQzS" />
+        <meta name="tiktok-developers-site-verification" content="XqVUeq6ouuh0RVFBPimubXNpZToAe1Xu" />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
