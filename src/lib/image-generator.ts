@@ -1,30 +1,21 @@
-import sharp from "sharp";
-import { readFileSync } from "fs";
+import { createCanvas, registerFont } from "canvas";
 import { join } from "path";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
 
-let fontFaceStyle = "";
-try {
-  const regular = readFileSync(join(process.cwd(), "public/fonts/NotoSansDevanagari-Regular.ttf")).toString("base64");
-  const bold = readFileSync(join(process.cwd(), "public/fonts/NotoSansDevanagari-Bold.ttf")).toString("base64");
-  fontFaceStyle = `<style>
-    @font-face{font-family:'ND';src:url('data:font/ttf;base64,${regular}') format('truetype');font-weight:normal}
-    @font-face{font-family:'ND';src:url('data:font/ttf;base64,${bold}') format('truetype');font-weight:bold}
-  </style>`;
-} catch {}
+registerFont(join(process.cwd(), "public/fonts/NotoSansDevanagari-Regular.ttf"), { family: "ND" });
+registerFont(join(process.cwd(), "public/fonts/NotoSansDevanagari-Bold.ttf"), { family: "ND", weight: "bold" });
 
-const FONT = "ND, 'Noto Sans Devanagari', Arial, sans-serif";
-
-function wrapText(text: string, maxChars: number): string[] {
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
   const words = text.split(" ");
   const lines: string[] = [];
   let current = "";
 
   for (const word of words) {
-    if ((current + " " + word).trim().length <= maxChars) {
-      current = (current + " " + word).trim();
+    const test = current ? `${current} ${word}` : word;
+    if (ctx.measureText(test).width <= maxWidth) {
+      current = test;
     } else {
       if (current) lines.push(current);
       current = word;
@@ -34,59 +25,56 @@ function wrapText(text: string, maxChars: number): string[] {
   return lines;
 }
 
-function escapeXml(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
-}
-
 export async function generateImage(
   text: string,
   title?: string,
   citation?: string
 ): Promise<Buffer> {
-  const maxChars = 28;
-  const lines = wrapText(text, maxChars);
-  const titleLines = title ? wrapText(title, maxChars) : [];
-  const citeLines = citation ? wrapText(citation, maxChars) : [];
+  const canvas = createCanvas(WIDTH, HEIGHT);
+  const ctx = canvas.getContext("2d");
 
-  const titleHeight = titleLines.length * 90;
-  const bodyHeight = lines.length * 75;
-  const citeHeight = citeLines.length * 60;
-  const totalHeight = titleHeight + bodyHeight + citeHeight + 100;
-  const startY = Math.max((HEIGHT - totalHeight) / 2, 100);
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  let svg = `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-    <rect width="100%" height="100%" fill="#000000"/>${fontFaceStyle}`;
+  const maxWidth = WIDTH * 0.8;
+  const centerX = WIDTH / 2;
 
-  let y = startY;
+  let y = HEIGHT * 0.25;
 
-  for (const line of titleLines) {
-    svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="${FONT}" font-weight="bold" font-size="64" fill="#FFFFFF">${escapeXml(line)}</text>`;
-    y += 90;
+  if (title) {
+    ctx.font = "bold 64px ND";
+    ctx.fillStyle = "#FFFFFF";
+    ctx.textAlign = "center";
+    const lines = wrapText(ctx, title, maxWidth);
+    for (const line of lines) {
+      ctx.fillText(line, centerX, y);
+      y += 90;
+    }
+    y += 40;
   }
 
-  y += 40;
-
-  for (const line of lines) {
-    svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="${FONT}" font-size="48" fill="#FFFFFF">${escapeXml(line)}</text>`;
+  ctx.font = "48px ND";
+  ctx.fillStyle = "#FFFFFF";
+  ctx.textAlign = "center";
+  const bodyLines = wrapText(ctx, text, maxWidth);
+  for (const line of bodyLines) {
+    ctx.fillText(line, centerX, y);
     y += 75;
   }
 
   if (citation) {
     y += 30;
-    for (const line of citeLines) {
-      svg += `<text x="${WIDTH / 2}" y="${y}" text-anchor="middle" font-family="${FONT}" font-style="italic" font-size="40" fill="#AAAAAA">${escapeXml(line)}</text>`;
+    ctx.font = "italic 40px ND";
+    ctx.fillStyle = "#AAAAAA";
+    ctx.textAlign = "center";
+    const lines = wrapText(ctx, citation, maxWidth);
+    for (const line of lines) {
+      ctx.fillText(line, centerX, y);
       y += 55;
     }
   }
 
-  svg += "</svg>";
-
-  return sharp({
-    create: { width: WIDTH, height: HEIGHT, channels: 3, background: { r: 0, g: 0, b: 0 } },
-  })
-    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
-    .png()
-    .toBuffer();
+  return canvas.toBuffer("image/png");
 }
 
 export async function generateCarouselImages(
