@@ -8,9 +8,7 @@ import {
   getTodayDateString,
 } from "@/lib/scheduler";
 import { generateContent } from "@/lib/ai";
-import { generateCarouselImages, generateImage } from "@/lib/image-generator";
 import { postToFacebook } from "@/lib/facebook";
-import { postToTikTok } from "@/lib/tiktok";
 import type { AIContent, PostResult } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -45,22 +43,6 @@ async function processPost(
 
   const caption = `${content.title}\n\n${content.content_body}\n\n${(content.hashtags || []).join(" ")}`;
 
-  let imageBuffers: Buffer[];
-  let facebookImage: Buffer;
-
-  if (category === "language" && content.word_list?.length) {
-    const slides = content.word_list.map((w) => ({
-      text: `${w.nepali}\n${w.target}`,
-      title: w.example,
-    }));
-
-    imageBuffers = await generateCarouselImages(slides);
-    facebookImage = imageBuffers[0];
-  } else {
-    facebookImage = await generateImage(content.content_body, undefined, content.title);
-    imageBuffers = [facebookImage];
-  }
-
   const result = {
     facebook: { success: false } as PostResult["facebook"],
     tiktok: { success: false } as PostResult["tiktok"],
@@ -69,20 +51,11 @@ async function processPost(
   if (process.env.FACEBOOK_PAGE_ID && process.env.FACEBOOK_PAGE_ACCESS_TOKEN) {
     if (slotIndex === 0) {
       try {
-        const fbId = await postToFacebook(facebookImage, caption);
+        const fbId = await postToFacebook(caption);
         result.facebook = { success: true, post_id: fbId };
       } catch (err: unknown) {
         result.facebook = { success: false, error: err instanceof Error ? err.message : String(err) };
       }
-    }
-  }
-
-  if (process.env.TIKTOK_ACCESS_TOKEN) {
-    try {
-      const ttId = await postToTikTok(imageBuffers, caption);
-      result.tiktok = { success: true, post_id: ttId };
-    } catch (err: unknown) {
-      result.tiktok = { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   }
 
@@ -96,7 +69,7 @@ async function processPost(
     word_list: content.word_list || [],
     hashtags: content.hashtags || [],
     facebook_post_id: result.facebook.post_id || null,
-    tiktok_post_id: result.tiktok.post_id || null,
+    tiktok_post_id: null,
     posted: true,
   });
 
@@ -106,7 +79,7 @@ async function processPost(
     hashtags: content.hashtags || [],
     word_list: content.word_list,
     facebook: result.facebook,
-    tiktok: result.tiktok,
+    tiktok: { success: false },
   };
 }
 
@@ -121,18 +94,6 @@ async function processPostDryRun(
 
   const caption = `${content.title}\n\n${content.content_body}\n\n${(content.hashtags || []).join(" ")}`;
 
-  let imageBuffers: Buffer[];
-
-  if (category === "language" && content.word_list?.length) {
-    const slides = content.word_list.map((w) => ({
-      text: `${w.nepali}\n${w.target}`,
-      title: w.example,
-    }));
-    imageBuffers = await generateCarouselImages(slides);
-  } else {
-    imageBuffers = [await generateImage(content.content_body, undefined, content.title)];
-  }
-
   return {
     slot: slotIndex,
     category,
@@ -143,8 +104,7 @@ async function processPostDryRun(
     hashtags: content.hashtags || [],
     word_list: content.word_list || [],
     image_prompt: content.image_prompt,
-    image_count: imageBuffers.length,
-    preview_image_base64: `data:image/png;base64,${imageBuffers[0].toString("base64")}`,
+    image_generated: false,
   };
 }
 
