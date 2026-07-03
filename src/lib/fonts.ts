@@ -1,8 +1,9 @@
 import { Noto_Sans_Devanagari } from "next/font/google";
 import { registerFont } from "canvas";
 import { join } from "path";
+import { tmpdir } from "os";
 import { existsSync, mkdirSync } from "fs";
-import { writeFile, readFile } from "fs/promises";
+import { writeFile } from "fs/promises";
 
 export const notoDevanagari = Noto_Sans_Devanagari({
   subsets: ["devanagari"],
@@ -53,7 +54,7 @@ function parseFontUrls(css: string): FontUrls {
 }
 
 function getFontDir(): string {
-  const dir = join(process.cwd(), ".next", "fonts");
+  const dir = join(tmpdir(), "autopost-fonts");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;
 }
