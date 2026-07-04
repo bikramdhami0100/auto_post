@@ -67,13 +67,11 @@ async function processPost(
   };
 
   if (process.env.FACEBOOK_PAGE_ID && process.env.FACEBOOK_PAGE_ACCESS_TOKEN) {
-    if (slotIndex === 0) {
-      try {
-        const fbId = await postToFacebook(caption, imageBuffers);
-        result.facebook = { success: true, post_id: fbId };
-      } catch (err: unknown) {
-        result.facebook = { success: false, error: err instanceof Error ? err.message : String(err) };
-      }
+    try {
+      const fbId = await postToFacebook(caption, imageBuffers);
+      result.facebook = { success: true, post_id: fbId };
+    } catch (err: unknown) {
+      result.facebook = { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   }
 
