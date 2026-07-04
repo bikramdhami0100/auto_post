@@ -69,7 +69,7 @@ async function processPost(
   if (process.env.FACEBOOK_PAGE_ID && process.env.FACEBOOK_PAGE_ACCESS_TOKEN) {
     if (slotIndex === 0) {
       try {
-        const fbId = await postToFacebook(caption);
+        const fbId = await postToFacebook(caption, imageBuffers);
         result.facebook = { success: true, post_id: fbId };
       } catch (err: unknown) {
         result.facebook = { success: false, error: err instanceof Error ? err.message : String(err) };
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
     const date = getTodayDateString();
-    const postsPerDay = Math.min(3, Math.max(1, parseInt(process.env.POSTS_PER_DAY || "2", 10) || 2));
+    const postsPerDay = Math.min(3, Math.max(1, parseInt(process.env.POSTS_PER_DAY || "3", 10) || 3));
     const slot = parseInt(request.nextUrl.searchParams.get("slot") || "-1", 10);
 
     const results = [];
