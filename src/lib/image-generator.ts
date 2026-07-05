@@ -312,7 +312,7 @@ export async function generateLanguageTableImage(words: LanguageRow[]): Promise<
   ctx.translate(WIDTH / 2, 110);
   ctx.rotate((randDeg() * Math.PI) / 180);
   ctx.font = "bold 44px K";
-  const titleText = "नेपाली → अंग्रेजी शब्दहरू";
+  const titleText = "नेपाली - अंग्रेजी शब्दहरू";
   drawMarkerHighlight(ctx, titleText, -ctx.measureText(titleText).width / 2, 0, "rgba(255,255,153,0.5)", "bold 44px K");
   ctx.restore();
 
