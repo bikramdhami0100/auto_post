@@ -19,8 +19,6 @@ const MOTIVATION_SUB_TYPES: MotivationSubType[] = [
 
 const LANGUAGE_TARGETS: LanguageSubType[] = [
   "nepali_to_english",
-  "nepali_to_japanese",
-  "nepali_to_korean",
 ];
 
 function getDayOffset(): number {
@@ -64,17 +62,8 @@ export function getTodaySubType(category: ContentCategory): SubType {
   return "book_quote";
 }
 
-export function getTargetLanguage(subType: SubType): string {
-  switch (subType) {
-    case "nepali_to_english":
-      return "english";
-    case "nepali_to_japanese":
-      return "japanese";
-    case "nepali_to_korean":
-      return "korean";
-    default:
-      return "english";
-  }
+export function getTargetLanguage(_subType: SubType): string {
+  return "english";
 }
 
 export function getTodayDateString(): string {

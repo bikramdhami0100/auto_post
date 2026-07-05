@@ -8,14 +8,13 @@ export type MotivationSubType =
 
 export type EnlightenmentSubType = "philosophical_thought";
 
-export type LanguageSubType = "nepali_to_english" | "nepali_to_japanese" | "nepali_to_korean";
+export type LanguageSubType = "nepali_to_english";
 
 export type SubType = MotivationSubType | EnlightenmentSubType | LanguageSubType;
 
 export interface WordEntry {
   nepali: string;
   target: string;
-  pronunciation: string;
   example: string;
 }
 

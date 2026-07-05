@@ -49,19 +49,18 @@ Output JSON.`;
       return `${base}
 
 Category: "language"
-Target_language: "${targetLanguage}"
+Target_language: "english"
 Level: "basic_to_advanced"
 
 Write the "title" and "content_body" in Nepali language (नेपालीमा).
 The "hashtags" and "image_prompt" must be in English.
 
-Generate exactly 10 Nepali words/phrases with their translations and example sentences.
+Generate exactly 10 Nepali words/phrases with their English translations and example sentences.
 The list must progress from Basic (words 1-3) to Intermediate (4-7) to Advanced (8-10).
 For each word, provide these fields:
 - "nepali": The Nepali word in Devanagari script (e.g., नमस्कार).
-- "target": The translation in the NATIVE ${targetLanguage} script (e.g., for Japanese use kanji/kana like "こんにちは", for Korean use Hangul like "안녕하세요"). This is the actual target language word.
-- "pronunciation": The pronunciation written in NEPALI Devanagari script (e.g., कन्निचिवा). This must be in Devanagari so Nepali readers can read it.
-- "example": A simple example sentence in romanized form (Latin alphabet). Use ONLY Latin letters A-Z a-z.
+- "target": The English translation (e.g., "hello"). Use simple English words.
+- "example": A simple example sentence in English (e.g., "Hello, how are you?").
 
 Output JSON.`;
 

@@ -1,5 +1,5 @@
 import { createCanvas, CanvasRenderingContext2D } from "canvas";
-import { initCanvasFonts, initCJKCanvasFont } from "./fonts";
+import { initCanvasFonts } from "./fonts";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
@@ -17,7 +17,6 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   const chars = [...text];
   const lines: string[] = [];
   let current = "";
-
   for (const ch of chars) {
     const test = current + ch;
     if (ctx.measureText(test).width <= maxWidth) {
@@ -37,7 +36,6 @@ export async function generateImage(
   citation?: string
 ): Promise<Buffer> {
   await ensureFonts();
-
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext("2d");
 
@@ -46,15 +44,13 @@ export async function generateImage(
 
   const maxWidth = WIDTH * 0.8;
   const centerX = WIDTH / 2;
-
   let y = HEIGHT * 0.25;
 
   if (title) {
     ctx.font = `bold 64px ${FONT_FAMILY}`;
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "center";
-    const lines = wrapText(ctx, title, maxWidth);
-    for (const line of lines) {
+    for (const line of wrapText(ctx, title, maxWidth)) {
       ctx.fillText(line, centerX, y);
       y += 90;
     }
@@ -64,8 +60,7 @@ export async function generateImage(
   ctx.font = `48px ${FONT_FAMILY}`;
   ctx.fillStyle = "#FFFFFF";
   ctx.textAlign = "center";
-  const bodyLines = wrapText(ctx, text, maxWidth);
-  for (const line of bodyLines) {
+  for (const line of wrapText(ctx, text, maxWidth)) {
     ctx.fillText(line, centerX, y);
     y += 75;
   }
@@ -75,8 +70,7 @@ export async function generateImage(
     ctx.font = `italic 40px ${FONT_FAMILY}`;
     ctx.fillStyle = "#AAAAAA";
     ctx.textAlign = "center";
-    const lines = wrapText(ctx, citation, maxWidth);
-    for (const line of lines) {
+    for (const line of wrapText(ctx, citation, maxWidth)) {
       ctx.fillText(line, centerX, y);
       y += 55;
     }
@@ -85,98 +79,96 @@ export async function generateImage(
   return canvas.toBuffer("image/png");
 }
 
-export async function generateCarouselImages(
-  items: { text: string; title?: string }[]
-): Promise<Buffer[]> {
-  await ensureFonts();
-  return Promise.all(items.map((item) => generateImage(item.text, item.title)));
-}
-
-interface LanguageSlide {
+interface LanguageRow {
   nepali: string;
   target: string;
-  pronunciation: string;
   example: string;
 }
 
-const COL_WIDTHS = [270, 400, 330];
-const COL_STARTS = [55, 55 + COL_WIDTHS[0] + 20, 55 + COL_WIDTHS[0] + 20 + COL_WIDTHS[1] + 20];
-const COL_CENTERS = COL_STARTS.map((s, i) => s + COL_WIDTHS[i] / 2);
-const ROW_HEIGHT = 115;
-const HEADER_Y = 250;
-const FIRST_ROW_Y = 380;
-const SEPARATOR_XS = [55 + COL_WIDTHS[0] + 10, 55 + COL_WIDTHS[0] + 20 + COL_WIDTHS[1] + 10];
-
-export async function generateLanguageTableImage(
-  words: LanguageSlide[],
-  cjkFamily: string
-): Promise<Buffer> {
+export async function generateLanguageTableImage(words: LanguageRow[]): Promise<Buffer> {
+  await ensureFonts();
   const canvas = createCanvas(WIDTH, HEIGHT);
   const ctx = canvas.getContext("2d");
 
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
+  const margin = 50;
+  const tableW = WIDTH - margin * 2;
+
+  ctx.font = "bold 36px ND";
+
+  // Measure column widths based on content
+  const headerLabels = ["नेपाली", "English", "Example"];
+  const colFields: (keyof LanguageRow)[] = ["nepali", "target", "example"];
+
+  const maxWidths: number[] = [0, 0, 0];
+  for (let c = 0; c < 3; c++) {
+    const hW = ctx.measureText(headerLabels[c]).width;
+    maxWidths[c] = hW;
+    for (const w of words) {
+      const tW = ctx.measureText(w[colFields[c]]).width;
+      if (tW > maxWidths[c]) maxWidths[c] = tW;
+    }
+  }
+
+  // Distribute remaining space proportionally
+  const totalContent = maxWidths.reduce((a, b) => a + b, 0);
+  const spacing = 20;
+  const totalSpacing = spacing * 2;
+  const available = tableW - totalSpacing;
+  const colWidths = maxWidths.map((w) => Math.max(w + 30, (w / totalContent) * available));
+  // Normalize to fill tableW
+  const sum = colWidths.reduce((a, b) => a + b, 0);
+  for (let c = 0; c < 3; c++) {
+    colWidths[c] = (colWidths[c] / sum) * available;
+  }
+
+  const colStarts = [margin, margin + colWidths[0] + spacing, margin + colWidths[0] + spacing + colWidths[1] + spacing];
+  const colCenters = colStarts.map((s, i) => s + colWidths[i] / 2);
+
   // Column separators
   ctx.strokeStyle = "#333333";
   ctx.lineWidth = 1;
-  for (const sx of SEPARATOR_XS) {
+  for (let i = 1; i < 3; i++) {
+    const sx = colStarts[i] - spacing / 2;
     ctx.beginPath();
-    ctx.moveTo(sx, HEADER_Y - 40);
-    ctx.lineTo(sx, FIRST_ROW_Y + words.length * ROW_HEIGHT + 20);
+    ctx.moveTo(sx, 180);
+    ctx.lineTo(sx, 200 + words.length * 95);
     ctx.stroke();
   }
 
-  // Column headers
-  ctx.font = `bold 36px ${FONT_FAMILY}`;
+  // Headers
+  ctx.font = "bold 36px ND";
   ctx.fillStyle = "#FFD700";
   ctx.textAlign = "center";
-
-  ctx.fillText("नेपाली", COL_CENTERS[0], HEADER_Y);
-  ctx.fillText("Target", COL_CENTERS[1], HEADER_Y);
-  ctx.fillText("उच्चारण", COL_CENTERS[2], HEADER_Y);
-
-  // Header underline
-  ctx.strokeStyle = "#FFD700";
-  ctx.lineWidth = 1;
-  for (const cx of COL_CENTERS) {
+  for (let c = 0; c < 3; c++) {
+    ctx.fillText(headerLabels[c], colCenters[c], 220);
+    // underline
     ctx.beginPath();
-    ctx.moveTo(cx - 60, HEADER_Y + 8);
-    ctx.lineTo(cx + 60, HEADER_Y + 8);
+    ctx.moveTo(colStarts[c] + 10, 228);
+    ctx.lineTo(colStarts[c] + colWidths[c] - 10, 228);
     ctx.stroke();
   }
 
-  // Draw rows
-  for (let i = 0; i < words.length; i++) {
-    const rowY = FIRST_ROW_Y + i * ROW_HEIGHT;
-    const w = words[i];
+  // Rows
+  const rowH = 95;
+  const firstRow = 340;
+  ctx.font = "32px ND";
 
-    // Alternating row bg
+  for (let i = 0; i < words.length; i++) {
+    const ry = firstRow + i * rowH;
+    // Alternating bg
     if (i % 2 === 1) {
       ctx.fillStyle = "#111111";
-      ctx.fillRect(30, rowY - 35, WIDTH - 60, ROW_HEIGHT);
+      ctx.fillRect(margin, ry - 30, tableW, rowH);
     }
-
-    // Nepali col - ND font
-    ctx.font = `40px ${FONT_FAMILY}`;
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "center";
-    ctx.fillText(w.nepali, COL_CENTERS[0], rowY);
-
-    // Target col - CJK font
-    ctx.font = `40px ${cjkFamily}`;
-    ctx.fillText(w.target, COL_CENTERS[1], rowY);
-
-    // Pronunciation col - ND font
-    ctx.font = `36px ${FONT_FAMILY}`;
-    ctx.fillText(w.pronunciation || "", COL_CENTERS[2], rowY);
+    ctx.fillText(words[i].nepali, colCenters[0], ry);
+    ctx.fillText(words[i].target, colCenters[1], ry);
+    ctx.fillText(words[i].example, colCenters[2], ry);
   }
-
-  // Example at bottom
-  ctx.font = `italic 28px ${FONT_FAMILY}`;
-  ctx.fillStyle = "#666666";
-  ctx.textAlign = "center";
-  ctx.fillText(`"${words[0].example}"`, WIDTH / 2, FIRST_ROW_Y + words.length * ROW_HEIGHT + 70);
 
   return canvas.toBuffer("image/png");
 }
