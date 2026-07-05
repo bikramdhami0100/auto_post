@@ -4,12 +4,10 @@ import { SmtpConfigModel } from "@/models/SmtpConfig";
 import { withAuth, buildQuery, buildSortObj, paginatedResponse } from "@/lib/api-utils";
 import * as XLSX from "xlsx";
 
-export const GET = withAuth(async (req, { auth }) => {
+export const GET = withAuth(async (req) => {
   await connectDB();
   const { page, limit, search, sort, filter } = buildQuery(req.nextUrl.searchParams, "-createdAt");
   const query: Record<string, unknown> = {};
-
-  if (auth.role !== "admin") query.createdBy = auth.userId;
 
   if (search) {
     query.$or = [
@@ -37,7 +35,7 @@ export const GET = withAuth(async (req, { auth }) => {
   }
 
   return NextResponse.json(paginatedResponse(data, total, page, limit));
-});
+}, { adminOnly: true });
 
 export const POST = withAuth(async (req, { auth }) => {
   await connectDB();

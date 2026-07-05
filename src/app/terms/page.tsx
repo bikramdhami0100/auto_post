@@ -8,6 +8,14 @@ export default function TermsPage() {
           <Link href="/" className="text-lg font-bold text-zinc-900 dark:text-white">
             AutoPost Nepal
           </Link>
+          <nav className="flex items-center gap-4 text-sm">
+            <Link href="/login" className="px-4 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+              Login
+            </Link>
+            <Link href="/register" className="px-4 py-1.5 rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90">
+              Get Started
+            </Link>
+          </nav>
         </div>
       </header>
 
@@ -16,7 +24,7 @@ export default function TermsPage() {
           Terms of Service
         </h1>
 
-        <div className="prose prose-zinc dark:prose-invert max-w-none space-y-6 text-zinc-600 dark:text-zinc-400">
+        <div className="space-y-6 text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">
           <p><strong className="text-zinc-900 dark:text-white">Last updated:</strong> July 3, 2026</p>
 
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">1. Service Description</h2>
@@ -61,6 +69,11 @@ export default function TermsPage() {
           </p>
         </div>
       </main>
+
+      <footer className="w-full border-t border-zinc-200 dark:border-zinc-800 py-6 text-center text-sm text-zinc-500 dark:text-zinc-500">
+        &copy; {new Date().getFullYear()} AutoPost Nepal.{" "}
+        <Link href="/privacy" className="underline hover:text-zinc-700 dark:hover:text-zinc-300">Privacy</Link>
+      </footer>
     </div>
   );
 }

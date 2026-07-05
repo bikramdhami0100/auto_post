@@ -27,6 +27,7 @@ const ContentLogSchema = new Schema<IContentLog>({
     {
       nepali: { type: String },
       target: { type: String },
+      pronunciation: { type: String },
       example: { type: String },
     },
   ],

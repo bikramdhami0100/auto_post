@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/db";
 import { UserModel } from "@/models/User";
 import { withAuth, buildQuery, buildSortObj, paginatedResponse } from "@/lib/api-utils";
+import { hashPassword } from "@/lib/auth";
 import * as XLSX from "xlsx";
 
 export const GET = withAuth(async (req) => {
@@ -36,11 +37,12 @@ export const GET = withAuth(async (req) => {
   }
 
   return NextResponse.json(paginatedResponse(data, total, page, limit));
-});
+}, { adminOnly: true });
 
 export const POST = withAuth(async (req) => {
   await connectDB();
   const body = await req.json();
+  if (body.password) body.password = await hashPassword(body.password);
   const user = await UserModel.create(body);
-  return NextResponse.json({ data: user }, { status: 201 });
+  return NextResponse.json({ data: { ...user.toObject(), password: undefined } }, { status: 201 });
 }, { adminOnly: true });

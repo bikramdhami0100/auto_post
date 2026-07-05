@@ -46,3 +46,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  const response = NextResponse.json({ message: "Logged out" });
+  response.cookies.set("token", "", { httpOnly: true, path: "/", maxAge: 0 });
+  return response;
+}

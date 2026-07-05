@@ -56,7 +56,6 @@ export default function DashboardPage() {
         else if (key === "tikTokPosts") newStats.tikTokPosts = value;
       }
       setStats(newStats);
-      setStats(newStats);
     }
     fetchStats();
   }, []);

@@ -47,12 +47,9 @@ export default function ProfilePage() {
 
   const handleResendVerification = async () => {
     try {
-      const res = await fetch("/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user?.email }),
-      });
+      const res = await fetch("/api/auth/resend-verification", { method: "POST" });
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
       alert(data.message || "Verification email sent");
     } catch {
       alert("Failed to send verification email");

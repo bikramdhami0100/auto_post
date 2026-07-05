@@ -91,7 +91,7 @@ async function processPost(
     hashtags: content.hashtags || [],
     facebook_post_id: result.facebook.post_id || null,
     tiktok_post_id: result.tiktok.post_id || null,
-    posted: true,
+    posted: result.facebook.success || result.tiktok.success,
   });
 
   return {
