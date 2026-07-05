@@ -8,7 +8,7 @@ export async function GET() {
   if (!token) return NextResponse.json({ error: "no token" });
 
   const res = await fetch(
-    `https://graph.facebook.com/v25.0/${pid}?fields=id,message,attachments,permalink_url&access_token=${token}`
+    `https://graph.facebook.com/v25.0/${pid}?fields=id,story,permalink_url,attachments{media_type,title,description,url,subattachments}&access_token=${token}`
   );
   const data = await res.json();
   return NextResponse.json(data);
