@@ -172,12 +172,8 @@ export async function POST(request: NextRequest) {
 
     if (slot >= 0) {
       const existing = await ContentLogModel.findOne({ date, slot, posted: true });
-      const forced = request.nextUrl.searchParams.get("f") === "1";
-      if (existing && !forced) {
+      if (existing) {
         return NextResponse.json({ status: "skipped", message: `Slot ${slot} already posted today`, date, slot });
-      }
-      if (forced && existing) {
-        await ContentLogModel.deleteOne({ _id: existing._id });
       }
       const category = getSlotCategory(slot);
       const post = await processPost(date, slot, category);
