@@ -47,18 +47,7 @@ async function processPost(
 
   const content: AIContent = await generateContent(category, subType, targetLanguage);
 
-  const wordListText =
-    content.word_list?.length
-      ? "\n\n--- शब्द सूची ---\n" +
-        content.word_list
-          .map(
-            (w, i) =>
-              `${i + 1}. ${w.nepali} → ${w.target} (${w.example})`
-          )
-          .join("\n")
-      : "";
-
-  const caption = `${content.title}\n\n${content.content_body}${wordListText}\n\n${(content.hashtags || []).join(" ")}`;
+  const caption = `${content.title}\n\n${content.content_body}\n\n${(content.hashtags || []).join(" ")}`;
 
   let imageBuffers: Buffer[];
 
@@ -120,18 +109,7 @@ async function processPostDryRun(
 
   const content: AIContent = await generateContent(category, subType, targetLanguage);
 
-  const wordListText =
-    content.word_list?.length
-      ? "\n\n--- शब्द सूची ---\n" +
-        content.word_list
-          .map(
-            (w, i) =>
-              `${i + 1}. ${w.nepali} → ${w.target} (${w.example})`
-          )
-          .join("\n")
-      : "";
-
-  const caption = `${content.title}\n\n${content.content_body}${wordListText}\n\n${(content.hashtags || []).join(" ")}`;
+  const caption = `${content.title}\n\n${content.content_body}\n\n${(content.hashtags || []).join(" ")}`;
 
   let imageBuffers: Buffer[];
 
