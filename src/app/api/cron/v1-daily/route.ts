@@ -8,10 +8,10 @@ import {
   getTodayDateString,
 } from "@/lib/scheduler";
 import { generateContent } from "@/lib/ai";
-import { generateImage, generateLanguageSlides } from "@/lib/image-generator";
+import { generateImage, generateLanguageTableImage } from "@/lib/image-generator";
 import { postToFacebook } from "@/lib/facebook";
 import { postToTikTok } from "@/lib/tiktok";
-import { downloadGoogleFonts } from "@/lib/fonts";
+import { downloadGoogleFonts, initCJKCanvasFont } from "@/lib/fonts";
 import type { AIContent, PostResult } from "@/lib/types";
 
 // Preload fonts at server start
@@ -52,7 +52,9 @@ async function processPost(
   let imageBuffers: Buffer[];
 
   if (category === "language" && content.word_list?.length) {
-    imageBuffers = await generateLanguageSlides(content.word_list);
+    const needsCJK = targetLanguage === "japanese" || targetLanguage === "korean";
+    const cjkFamily = needsCJK ? await initCJKCanvasFont(targetLanguage as "japanese" | "korean") : "ND";
+    imageBuffers = [await generateLanguageTableImage(content.word_list, cjkFamily)];
   } else {
     imageBuffers = [await generateImage(content.content_body, content.title)];
   }
@@ -118,7 +120,9 @@ async function processPostDryRun(
   let imageBuffers: Buffer[];
 
   if (category === "language" && content.word_list?.length) {
-    imageBuffers = await generateLanguageSlides(content.word_list);
+    const needsCJK = targetLanguage === "japanese" || targetLanguage === "korean";
+    const cjkFamily = needsCJK ? await initCJKCanvasFont(targetLanguage as "japanese" | "korean") : "ND";
+    imageBuffers = [await generateLanguageTableImage(content.word_list, cjkFamily)];
   } else {
     imageBuffers = [await generateImage(content.content_body, content.title)];
   }

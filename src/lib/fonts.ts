@@ -17,9 +17,8 @@ interface FontUrls {
   bold: string;
 }
 
-async function fetchGoogleFontsCss(): Promise<string> {
-  const cssUrl =
-    "https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&display=swap";
+async function fetchGoogleFontsCss(family: string): Promise<string> {
+  const cssUrl = `https://fonts.googleapis.com/css2?family=${family}:wght@400;700&display=swap`;
   const resp = await fetch(cssUrl);
   return resp.text();
 }
@@ -59,30 +58,46 @@ function getFontDir(): string {
   return dir;
 }
 
-function getLocalPaths() {
+function getLocalPaths(name: string) {
   const dir = getFontDir();
   return {
-    regular: join(dir, "NotoSansDevanagari-Regular.woff2"),
-    bold: join(dir, "NotoSansDevanagari-Bold.woff2"),
+    regular: join(dir, `${name}-Regular.woff2`),
+    bold: join(dir, `${name}-Bold.woff2`),
   };
 }
 
-export async function downloadGoogleFonts(): Promise<void> {
-  const paths = getLocalPaths();
+async function downloadFont(name: string, cssFamily: string): Promise<void> {
+  const paths = getLocalPaths(name);
   if (existsSync(paths.regular) && existsSync(paths.bold)) return;
 
-  const css = await fetchGoogleFontsCss();
+  const css = await fetchGoogleFontsCss(cssFamily);
   const urls = parseFontUrls(css);
 
   const regularResp = await fetch(urls.regular);
-  if (!regularResp.ok) throw new Error(`Failed to download regular font`);
+  if (!regularResp.ok) throw new Error(`Failed to download ${name} regular`);
   await writeFile(paths.regular, Buffer.from(await regularResp.arrayBuffer()));
 
   const boldResp = await fetch(urls.bold);
-  if (!boldResp.ok) throw new Error(`Failed to download bold font`);
+  if (!boldResp.ok) throw new Error(`Failed to download ${name} bold`);
   await writeFile(paths.bold, Buffer.from(await boldResp.arrayBuffer()));
 
-  console.log(`Fonts downloaded to ${getFontDir()}`);
+  console.log(`${name} fonts downloaded to ${getFontDir()}`);
+}
+
+export async function downloadGoogleFonts(): Promise<void> {
+  await downloadFont("ND", "Noto+Sans+Devanagari");
+}
+
+export async function downloadCJKFont(
+  lang: "japanese" | "korean"
+): Promise<string> {
+  const cssFamily =
+    lang === "japanese"
+      ? "Noto+Sans+JP"
+      : "Noto+Sans+KR";
+  const name = lang === "japanese" ? "NotoSansJP" : "NotoSansKR";
+  await downloadFont(name, cssFamily);
+  return name;
 }
 
 export async function initCanvasFonts(): Promise<void> {
@@ -90,7 +105,7 @@ export async function initCanvasFonts(): Promise<void> {
   const localRegular = join(localFallbackDir, "NotoSansDevanagari-Regular.ttf");
   const localBold = join(localFallbackDir, "NotoSansDevanagari-Bold.ttf");
 
-  const paths = getLocalPaths();
+  const paths = getLocalPaths("ND");
 
   if (existsSync(paths.regular) && existsSync(paths.bold)) {
     try {
@@ -108,4 +123,24 @@ export async function initCanvasFonts(): Promise<void> {
     registerFont(localBold, { family: "ND", weight: "bold" });
     console.log("Canvas fonts registered (local fallback)");
   }
+}
+
+export async function initCJKCanvasFont(
+  lang: "japanese" | "korean"
+): Promise<string> {
+  const name = lang === "japanese" ? "NotoSansJP" : "NotoSansKR";
+  const paths = getLocalPaths(name);
+
+  if (!existsSync(paths.regular) || !existsSync(paths.bold)) {
+    await downloadCJKFont(lang);
+  }
+
+  const family = name;
+  try {
+    registerFont(paths.regular, { family });
+    registerFont(paths.bold, { family, weight: "bold" });
+  } catch {
+    // already registered
+  }
+  return family;
 }

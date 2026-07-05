@@ -59,9 +59,9 @@ Generate exactly 10 Nepali words/phrases with their translations and example sen
 The list must progress from Basic (words 1-3) to Intermediate (4-7) to Advanced (8-10).
 For each word, provide these fields:
 - "nepali": The Nepali word in Devanagari script (e.g., नमस्कार).
-- "target": The translation in ROMANIZED ${targetLanguage} (e.g., for Japanese use romaji like "konnichiwa", for Korean use romanization like "annyeonghaseyo"). Use ONLY Latin letters A-Z a-z.
-- "pronunciation": The pronunciation written in NEPALI Devanagari script (e.g., कन्निचिवा). This must be in Devanagari.
-- "example": A simple example sentence in ROMANIZED ${targetLanguage}. Use ONLY Latin letters.
+- "target": The translation in the NATIVE ${targetLanguage} script (e.g., for Japanese use kanji/kana like "こんにちは", for Korean use Hangul like "안녕하세요"). This is the actual target language word.
+- "pronunciation": The pronunciation written in NEPALI Devanagari script (e.g., कन्निचिवा). This must be in Devanagari so Nepali readers can read it.
+- "example": A simple example sentence in romanized form (Latin alphabet). Use ONLY Latin letters A-Z a-z.
 
 Output JSON.`;
 
