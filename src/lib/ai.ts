@@ -55,19 +55,19 @@ Level: "basic_to_advanced"
 Write the "title" and "content_body" in Nepali language (नेपालीमा).
 The "hashtags" and "image_prompt" must be in English.
 
-The "word_list" must contain actual Unicode characters — Nepali words in
-Devanagari script, translations in the target language's native script
-(e.g., Japanese in Hiragana/Katakana/Kanji, Korean in Hangul), and example
-sentences in the target language's native script.
+The "word_list" must contain:
+- Nepali words in Devanagari script (actual Unicode characters).
+- Translations in ROMANIZED/Latin script form (NOT native script).
+- Example sentences in ROMANIZED/Latin script form (NOT native script).
 
 Generate exactly 10 Nepali words/phrases with their translations and example sentences.
 The list must progress from Basic (words 1-3) to Intermediate (4-7) to Advanced (8-10).
 For each word, provide:
-- "nepali": The Nepali word in Devanagari script (use actual Nepali Unicode characters, not transliteration).
-- "target": The translation in ${targetLanguage} (use actual ${targetLanguage} native script characters, not romanization).
-- "example": A simple example sentence in ${targetLanguage} (use actual ${targetLanguage} native script characters).
+- "nepali": The Nepali word in Devanagari script.
+- "target": The translation in ROMANIZED ${targetLanguage} (e.g., for Japanese use romaji like "konnichiwa", for Korean use romanization like "annyeonghaseyo"). DO NOT use native script characters.
+- "example": A simple example sentence in ROMANIZED ${targetLanguage}. DO NOT use native script.
 
-IMPORTANT: All text must use actual Unicode characters, NOT escape sequences or ASCII approximations. Do NOT use \\uXXXX escapes.
+IMPORTANT: The "target" and "example" fields must use ONLY Latin (A-Z a-z) characters along with common punctuation. No native script characters.
 
 Output JSON.`;
 
