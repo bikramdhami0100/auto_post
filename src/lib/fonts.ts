@@ -12,100 +12,87 @@ export const notoDevanagari = Noto_Sans_Devanagari({
   variable: "--font-noto-devanagari",
 });
 
-interface FontUrls {
-  regular: string;
-  bold: string;
-}
-
-async function fetchGoogleFontsCss(): Promise<string> {
-  const cssUrl =
-    "https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&display=swap";
-  const resp = await fetch(cssUrl);
-  return resp.text();
-}
-
-function parseFontUrls(css: string): FontUrls {
-  const urls: string[] = [];
-  const regex = /src:\s*url\(([^)]+)\)/g;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(css)) !== null) {
-    urls.push(match[1]);
-  }
-
-  const devanagariUrls: string[] = [];
-  const sections = css.split("@font-face");
-  for (let i = 1; i < sections.length; i++) {
-    const section = sections[i];
-    if (section.includes("U+0900-097F")) {
-      const urlMatch = section.match(/src:\s*url\(([^)]+)\)/);
-      if (urlMatch) devanagariUrls.push(urlMatch[1]);
-    }
-  }
-
-  const filtered =
-    devanagariUrls.length >= 2
-      ? devanagariUrls
-      : urls.filter((u) => /\.woff2/i.test(u));
-
-  return {
-    regular: filtered[0] || urls[0],
-    bold: filtered[1] || urls[1] || urls[0],
-  };
-}
-
 function getFontDir(): string {
   const dir = join(tmpdir(), "autopost-fonts");
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   return dir;
 }
 
-function getLocalPaths() {
+function getLocalPaths(name: string) {
   const dir = getFontDir();
   return {
-    regular: join(dir, "NotoSansDevanagari-Regular.woff2"),
-    bold: join(dir, "NotoSansDevanagari-Bold.woff2"),
+    regular: join(dir, `${name}-Regular.woff2`),
+    bold: join(dir, `${name}-Bold.woff2`),
+    light: join(dir, `${name}-Light.woff2`),
   };
 }
 
-export async function downloadGoogleFonts(): Promise<void> {
-  const paths = getLocalPaths();
+async function downloadGoogleFont(name: string, cssFamily: string, weights: string): Promise<void> {
+  const paths = getLocalPaths(name);
   if (existsSync(paths.regular) && existsSync(paths.bold)) return;
 
-  const css = await fetchGoogleFontsCss();
-  const urls = parseFontUrls(css);
+  const cssUrl = `https://fonts.googleapis.com/css2?family=${cssFamily}:wght@${weights}&display=swap`;
+  const css = await (await fetch(cssUrl)).text();
 
-  const regularResp = await fetch(urls.regular);
-  if (!regularResp.ok) throw new Error(`Failed to download regular font`);
-  await writeFile(paths.regular, Buffer.from(await regularResp.arrayBuffer()));
+  const sections = css.split("@font-face").slice(1);
+  const woff2Urls: string[] = [];
+  for (const sec of sections) {
+    const m = sec.match(/src:\s*url\(([^)]+)\)/);
+    if (m) woff2Urls.push(m[1]);
+  }
 
-  const boldResp = await fetch(urls.bold);
-  if (!boldResp.ok) throw new Error(`Failed to download bold font`);
-  await writeFile(paths.bold, Buffer.from(await boldResp.arrayBuffer()));
+  if (woff2Urls.length >= 1) {
+    const resp = await fetch(woff2Urls[0]);
+    await writeFile(paths.regular, Buffer.from(await resp.arrayBuffer()));
+  }
+  if (woff2Urls.length >= 2) {
+    const resp = await fetch(woff2Urls[1]);
+    await writeFile(paths.bold, Buffer.from(await resp.arrayBuffer()));
+  }
+  if (woff2Urls.length >= 3) {
+    const resp = await fetch(woff2Urls[2]);
+    await writeFile(paths.light, Buffer.from(await resp.arrayBuffer()));
+  }
+}
 
-  console.log(`Fonts downloaded to ${getFontDir()}`);
+export async function downloadGoogleFonts(): Promise<void> {
+  await downloadGoogleFont("NotoSansDevanagari", "Noto+Sans+Devanagari", "400;700");
+  await downloadGoogleFont("Kalam", "Kalam", "300;400;700");
 }
 
 export async function initCanvasFonts(): Promise<void> {
   const localFallbackDir = join(process.cwd(), "public", "fonts");
-  const localRegular = join(localFallbackDir, "NotoSansDevanagari-Regular.ttf");
-  const localBold = join(localFallbackDir, "NotoSansDevanagari-Bold.ttf");
+  const ndPaths = getLocalPaths("NotoSansDevanagari");
+  const kalamPaths = getLocalPaths("Kalam");
 
-  const paths = getLocalPaths();
+  const fonts: { path: string; family: string; weight?: string }[] = [];
 
-  if (existsSync(paths.regular) && existsSync(paths.bold)) {
-    try {
-      registerFont(paths.regular, { family: "ND" });
-      registerFont(paths.bold, { family: "ND", weight: "bold" });
-      console.log("Canvas fonts registered (CDN)");
-      return;
-    } catch {
-      console.log("CDN font registration failed, trying local fallback");
-    }
+  if (existsSync(ndPaths.regular)) {
+    fonts.push({ path: ndPaths.regular, family: "ND" });
+  } else if (existsSync(join(localFallbackDir, "NotoSansDevanagari-Regular.ttf"))) {
+    fonts.push({ path: join(localFallbackDir, "NotoSansDevanagari-Regular.ttf"), family: "ND" });
+  }
+  if (existsSync(ndPaths.bold)) {
+    fonts.push({ path: ndPaths.bold, family: "ND", weight: "bold" });
+  } else if (existsSync(join(localFallbackDir, "NotoSansDevanagari-Bold.ttf"))) {
+    fonts.push({ path: join(localFallbackDir, "NotoSansDevanagari-Bold.ttf"), family: "ND", weight: "bold" });
   }
 
-  if (existsSync(localRegular) && existsSync(localBold)) {
-    registerFont(localRegular, { family: "ND" });
-    registerFont(localBold, { family: "ND", weight: "bold" });
-    console.log("Canvas fonts registered (local fallback)");
+  if (existsSync(kalamPaths.regular)) {
+    fonts.push({ path: kalamPaths.regular, family: "K" });
+  }
+  if (existsSync(kalamPaths.bold)) {
+    fonts.push({ path: kalamPaths.bold, family: "K", weight: "bold" });
+  }
+  if (existsSync(kalamPaths.light)) {
+    fonts.push({ path: kalamPaths.light, family: "K", weight: "300" });
+  }
+
+  for (const f of fonts) {
+    try {
+      registerFont(f.path, { family: f.family, weight: f.weight });
+    } catch {
+      // already registered
+    }
   }
 }
