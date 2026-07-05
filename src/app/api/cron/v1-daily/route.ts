@@ -47,19 +47,22 @@ async function processPost(
 
   const content: AIContent = await generateContent(category, subType, targetLanguage);
 
-  const caption = `${content.title}\n\n${content.content_body}\n\n${(content.hashtags || []).join(" ")}`;
+  const wordListText =
+    content.word_list?.length
+      ? "\n\n--- शब्द सूची ---\n" +
+        content.word_list
+          .map(
+            (w, i) =>
+              `${i + 1}. ${w.nepali} → ${w.target} (${w.example})`
+          )
+          .join("\n")
+      : "";
+
+  const caption = `${content.title}\n\n${content.content_body}${wordListText}\n\n${(content.hashtags || []).join(" ")}`;
 
   let imageBuffers: Buffer[];
 
-  if (category === "language" && content.word_list?.length) {
-    const slides = content.word_list.map((w) => ({
-      text: `${w.nepali}\n${w.target}`,
-      title: w.example,
-    }));
-    imageBuffers = await generateCarouselImages(slides);
-  } else {
-    imageBuffers = [await generateImage(content.content_body, content.title)];
-  }
+  imageBuffers = [await generateImage(content.content_body, content.title)];
 
   const result = {
     facebook: { success: false } as PostResult["facebook"],
@@ -117,19 +120,22 @@ async function processPostDryRun(
 
   const content: AIContent = await generateContent(category, subType, targetLanguage);
 
-  const caption = `${content.title}\n\n${content.content_body}\n\n${(content.hashtags || []).join(" ")}`;
+  const wordListText =
+    content.word_list?.length
+      ? "\n\n--- शब्द सूची ---\n" +
+        content.word_list
+          .map(
+            (w, i) =>
+              `${i + 1}. ${w.nepali} → ${w.target} (${w.example})`
+          )
+          .join("\n")
+      : "";
+
+  const caption = `${content.title}\n\n${content.content_body}${wordListText}\n\n${(content.hashtags || []).join(" ")}`;
 
   let imageBuffers: Buffer[];
 
-  if (category === "language" && content.word_list?.length) {
-    const slides = content.word_list.map((w) => ({
-      text: `${w.nepali}\n${w.target}`,
-      title: w.example,
-    }));
-    imageBuffers = await generateCarouselImages(slides);
-  } else {
-    imageBuffers = [await generateImage(content.content_body, content.title)];
-  }
+  imageBuffers = [await generateImage(content.content_body, content.title)];
 
   return {
     slot: slotIndex,
