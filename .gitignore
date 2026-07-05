@@ -44,3 +44,4 @@ test_*
 next-env.d.ts
 
 .vercel
+.env*
