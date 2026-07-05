@@ -65,8 +65,57 @@ For each word, provide these fields:
 
 Output JSON.`;
 
-    default:
-      return base;
+    case "general_knowledge":
+      return `${base}
+
+Category: "general_knowledge"
+Sub-type: "${subType}"
+
+Write the "title" and "content_body" in Nepali language (नेपालीमा).
+The "hashtags" and "image_prompt" must be in English.
+Share an interesting fact about ${subType} — one clear, engaging paragraph (3-5 sentences).
+Make it educational but fun. Include a surprising detail or statistic.
+The title should be in Nepali. The content_body must be entirely in Nepali.
+Output JSON.`;
+
+    case "health_fitness":
+      return `${base}
+
+Category: "health_fitness"
+Sub-type: "${subType}"
+
+Write the "title" and "content_body" in Nepali language (नेपालीमा).
+The "hashtags" and "image_prompt" must be in English.
+Give a practical health/fitness tip about ${subType} in Nepali (3-5 sentences).
+Include actionable advice that readers can apply immediately.
+The title should be in Nepali. The content_body must be entirely in Nepali.
+Output JSON.`;
+
+    case "nepali_culture":
+      return `${base}
+
+Category: "nepali_culture"
+Sub-type: "${subType}"
+
+Write the "title" and "content_body" in Nepali language (नेपालीमा).
+The "hashtags" and "image_prompt" must be in English.
+Share an interesting aspect of Nepali ${subType} — festivals, traditions, history, or famous personalities.
+Write 3-5 informative sentences in Nepali. Include cultural significance or historical context.
+The title should be in Nepali. The content_body must be entirely in Nepali.
+Output JSON.`;
+
+    case "coding_tech":
+      return `${base}
+
+Category: "coding_tech"
+Sub-type: "${subType}"
+
+Write the "title" and "content_body" in Nepali language (नेपालीमा).
+The "hashtags" and "image_prompt" must be in English.
+Share a useful tech/coding tip about ${subType} in Nepali (3-5 sentences).
+Make it beginner-friendly. Include a practical example or resource.
+The title should be in Nepali. The content_body must be entirely in Nepali.
+Output JSON.`;
   }
 }
 

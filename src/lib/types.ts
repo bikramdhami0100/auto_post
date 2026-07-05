@@ -1,4 +1,11 @@
-export type ContentCategory = "motivation" | "enlightenment" | "language";
+export type ContentCategory =
+  | "motivation"
+  | "enlightenment"
+  | "language"
+  | "general_knowledge"
+  | "health_fitness"
+  | "nepali_culture"
+  | "coding_tech";
 
 export type MotivationSubType =
   | "book_quote"
@@ -10,7 +17,19 @@ export type EnlightenmentSubType = "philosophical_thought";
 
 export type LanguageSubType = "nepali_to_english";
 
-export type SubType = MotivationSubType | EnlightenmentSubType | LanguageSubType;
+export type GeneralKnowledgeSubType = "science" | "history" | "geography" | "technology";
+export type HealthFitnessSubType = "nutrition" | "exercise" | "mental_health" | "wellness";
+export type NepaliCultureSubType = "festival" | "tradition" | "history" | "personality";
+export type CodingTechSubType = "programming" | "digital_skills" | "tech_facts" | "tools";
+
+export type SubType =
+  | MotivationSubType
+  | EnlightenmentSubType
+  | LanguageSubType
+  | GeneralKnowledgeSubType
+  | HealthFitnessSubType
+  | NepaliCultureSubType
+  | CodingTechSubType;
 
 export interface WordEntry {
   nepali: string;
