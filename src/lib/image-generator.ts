@@ -82,6 +82,7 @@ export async function generateImage(
 interface LanguageRow {
   nepali: string;
   target: string;
+  pronunciation: string;
   example: string;
 }
 
@@ -93,81 +94,92 @@ export async function generateLanguageTableImage(words: LanguageRow[]): Promise<
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  const margin = 50;
+  const margin = 40;
   const tableW = WIDTH - margin * 2;
+  const colCount = 4;
+  const spacing = 16;
 
-  ctx.font = "bold 36px ND";
+  ctx.font = "bold 38px ND";
 
-  // Measure column widths based on content
-  const headerLabels = ["नेपाली", "English", "Example"];
-  const colFields: (keyof LanguageRow)[] = ["nepali", "target", "example"];
+  // Headers and field keys
+  const headerLabels = ["नेपाली", "English", "उच्चारण", "Example"];
+  const fields: (keyof LanguageRow)[] = ["nepali", "target", "pronunciation", "example"];
 
-  const maxWidths: number[] = [0, 0, 0];
-  for (let c = 0; c < 3; c++) {
+  // Measure max width per column
+  const maxWidths: number[] = [0, 0, 0, 0];
+  for (let c = 0; c < colCount; c++) {
     const hW = ctx.measureText(headerLabels[c]).width;
     maxWidths[c] = hW;
     for (const w of words) {
-      const tW = ctx.measureText(w[colFields[c]]).width;
+      const tW = ctx.measureText(w[fields[c]]).width;
       if (tW > maxWidths[c]) maxWidths[c] = tW;
     }
   }
 
-  // Distribute remaining space proportionally
+  // Distribute width proportionally
   const totalContent = maxWidths.reduce((a, b) => a + b, 0);
-  const spacing = 20;
-  const totalSpacing = spacing * 2;
+  const totalSpacing = spacing * (colCount - 1);
   const available = tableW - totalSpacing;
-  const colWidths = maxWidths.map((w) => Math.max(w + 30, (w / totalContent) * available));
-  // Normalize to fill tableW
+  const colWidths = maxWidths.map((w) => Math.max(w + 24, (w / totalContent) * available));
   const sum = colWidths.reduce((a, b) => a + b, 0);
-  for (let c = 0; c < 3; c++) {
+  for (let c = 0; c < colCount; c++) {
     colWidths[c] = (colWidths[c] / sum) * available;
   }
 
-  const colStarts = [margin, margin + colWidths[0] + spacing, margin + colWidths[0] + spacing + colWidths[1] + spacing];
+  // Column positions
+  const colStarts: number[] = [];
+  let curX = margin;
+  for (let c = 0; c < colCount; c++) {
+    colStarts.push(curX);
+    curX += colWidths[c] + spacing;
+  }
   const colCenters = colStarts.map((s, i) => s + colWidths[i] / 2);
 
+  // Table layout
+  const headerY = 200;
+  const rowH = 110;
+  const firstRowY = 320;
+  const tableBottom = firstRowY + words.length * rowH + 20;
+
   // Column separators
-  ctx.strokeStyle = "#333333";
+  ctx.strokeStyle = "#444444";
   ctx.lineWidth = 1;
-  for (let i = 1; i < 3; i++) {
+  for (let i = 1; i < colCount; i++) {
     const sx = colStarts[i] - spacing / 2;
     ctx.beginPath();
-    ctx.moveTo(sx, 180);
-    ctx.lineTo(sx, 200 + words.length * 95);
+    ctx.moveTo(sx, headerY - 20);
+    ctx.lineTo(sx, tableBottom);
     ctx.stroke();
   }
 
   // Headers
-  ctx.font = "bold 36px ND";
+  ctx.font = "bold 38px ND";
   ctx.fillStyle = "#FFD700";
   ctx.textAlign = "center";
-  for (let c = 0; c < 3; c++) {
-    ctx.fillText(headerLabels[c], colCenters[c], 220);
-    // underline
+  for (let c = 0; c < colCount; c++) {
+    ctx.fillText(headerLabels[c], colCenters[c], headerY);
     ctx.beginPath();
-    ctx.moveTo(colStarts[c] + 10, 228);
-    ctx.lineTo(colStarts[c] + colWidths[c] - 10, 228);
+    ctx.moveTo(colStarts[c] + 8, headerY + 6);
+    ctx.lineTo(colStarts[c] + colWidths[c] - 8, headerY + 6);
     ctx.stroke();
   }
 
   // Rows
-  const rowH = 95;
-  const firstRow = 340;
-  ctx.font = "32px ND";
+  ctx.font = "36px ND";
 
   for (let i = 0; i < words.length; i++) {
-    const ry = firstRow + i * rowH;
-    // Alternating bg
+    const ry = firstRowY + i * rowH;
     if (i % 2 === 1) {
       ctx.fillStyle = "#111111";
-      ctx.fillRect(margin, ry - 30, tableW, rowH);
+      ctx.fillRect(margin, ry - 32, tableW, rowH);
     }
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "center";
-    ctx.fillText(words[i].nepali, colCenters[0], ry);
-    ctx.fillText(words[i].target, colCenters[1], ry);
-    ctx.fillText(words[i].example, colCenters[2], ry);
+    const w = words[i];
+    ctx.fillText(w.nepali, colCenters[0], ry);
+    ctx.fillText(w.target, colCenters[1], ry);
+    ctx.fillText(w.pronunciation || "", colCenters[2], ry);
+    ctx.fillText(w.example, colCenters[3], ry);
   }
 
   return canvas.toBuffer("image/png");

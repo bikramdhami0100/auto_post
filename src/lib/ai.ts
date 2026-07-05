@@ -60,6 +60,7 @@ The list must progress from Basic (words 1-3) to Intermediate (4-7) to Advanced 
 For each word, provide these fields:
 - "nepali": The Nepali word in Devanagari script (e.g., नमस्कार).
 - "target": The English translation (e.g., "hello"). Use simple English words.
+- "pronunciation": The pronunciation written in NEPALI Devanagari script (e.g., हेलो, वाटर). This helps Nepali readers pronounce the English word.
 - "example": A simple example sentence in English (e.g., "Hello, how are you?").
 
 Output JSON.`;
