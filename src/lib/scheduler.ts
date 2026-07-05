@@ -38,13 +38,12 @@ function seededRandom(seed: number): number {
   return x - Math.floor(x);
 }
 
-export function getSlotCategory(slotIndex: number): ContentCategory {
+export function getSlotCategory(_slotIndex: number): ContentCategory {
   const seed = getDateSeed();
-  const weekOffset = Math.floor(seed / 7);
-  return ALL_CATEGORIES[(weekOffset + slotIndex) % ALL_CATEGORIES.length];
+  return ALL_CATEGORIES[seed % ALL_CATEGORIES.length];
 }
 
-export function getTodaySubType(category: ContentCategory): SubType {
+export function getTodaySubType(category: ContentCategory, slotIndex?: number): SubType {
   const seed = getDateSeed();
 
   if (category === "enlightenment") return "philosophical_thought";
@@ -63,7 +62,8 @@ export function getTodaySubType(category: ContentCategory): SubType {
               ? TECH_SUB_TYPES
               : MOTIVATION_SUB_TYPES;
 
-  const idx = Math.floor(seededRandom(seed) * arr.length);
+  const dailyOffset = Math.floor(seededRandom(seed) * arr.length);
+  const idx = (dailyOffset + (slotIndex ?? 0)) % arr.length;
   return arr[idx];
 }
 

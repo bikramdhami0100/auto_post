@@ -42,7 +42,7 @@ async function processPost(
   facebook: PostResult["facebook"];
   tiktok: PostResult["tiktok"];
 }> {
-  const subType = getTodaySubType(category);
+  const subType = getTodaySubType(category, slotIndex);
   const targetLanguage = getTargetLanguage(subType);
 
   const content: AIContent = await generateContent(category, subType, targetLanguage);
@@ -108,7 +108,7 @@ async function processPostDryRun(
   slotIndex: number,
   category: ReturnType<typeof getSlotCategory>
 ) {
-  const subType = getTodaySubType(category);
+  const subType = getTodaySubType(category, slotIndex);
   const targetLanguage = getTargetLanguage(subType);
 
   const content: AIContent = await generateContent(category, subType, targetLanguage);
