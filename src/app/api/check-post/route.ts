@@ -3,12 +3,13 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const pid = "122104553025378042";
   const token = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
-  if (!token) return NextResponse.json({ error: "no token" });
+  const pageId = process.env.FACEBOOK_PAGE_ID;
+  if (!token || !pageId) return NextResponse.json({ error: "missing creds" });
 
+  // get recent posts from page feed
   const res = await fetch(
-    `https://graph.facebook.com/v25.0/${pid}?fields=id,story,permalink_url,attachments{media_type,title,description,url,subattachments}&access_token=${token}`
+    `https://graph.facebook.com/v25.0/${pageId}/feed?fields=id,message,attachments,permalink_url,created_time&limit=5&access_token=${token}`
   );
   const data = await res.json();
   return NextResponse.json(data);
