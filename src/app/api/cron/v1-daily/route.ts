@@ -8,7 +8,7 @@ import {
   getTodayDateString,
 } from "@/lib/scheduler";
 import { generateContent } from "@/lib/ai";
-import { generateCarouselImages, generateImage } from "@/lib/image-generator";
+import { generateImage, generateLanguageSlides } from "@/lib/image-generator";
 import { postToFacebook } from "@/lib/facebook";
 import { postToTikTok } from "@/lib/tiktok";
 import { downloadGoogleFonts } from "@/lib/fonts";
@@ -51,7 +51,11 @@ async function processPost(
 
   let imageBuffers: Buffer[];
 
-  imageBuffers = [await generateImage(content.content_body, content.title)];
+  if (category === "language" && content.word_list?.length) {
+    imageBuffers = await generateLanguageSlides(content.word_list);
+  } else {
+    imageBuffers = [await generateImage(content.content_body, content.title)];
+  }
 
   const result = {
     facebook: { success: false } as PostResult["facebook"],
@@ -113,7 +117,11 @@ async function processPostDryRun(
 
   let imageBuffers: Buffer[];
 
-  imageBuffers = [await generateImage(content.content_body, content.title)];
+  if (category === "language" && content.word_list?.length) {
+    imageBuffers = await generateLanguageSlides(content.word_list);
+  } else {
+    imageBuffers = [await generateImage(content.content_body, content.title)];
+  }
 
   return {
     slot: slotIndex,

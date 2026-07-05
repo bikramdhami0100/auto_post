@@ -11,50 +11,21 @@ export async function postToFacebook(
     throw new Error("Facebook credentials not configured");
   }
 
+  // Post with image: use FormData (reliable multipart handling)
+  const form = new FormData();
+  form.append("message", caption);
+
   if (imageBuffers && imageBuffers.length > 0) {
-    const formBoundary = `----FormBoundary${Date.now()}`;
-    const bodyParts: Buffer[] = [];
-    const enc = (s: string) => Buffer.from(s, "utf-8");
-
-    bodyParts.push(
-      enc(
-        `--${formBoundary}\r\nContent-Disposition: form-data; name="source"; filename="post.png"\r\nContent-Type: image/png\r\n\r\n`
-      )
-    );
-    bodyParts.push(imageBuffers[0]);
-    bodyParts.push(enc("\r\n"));
-
-    bodyParts.push(
-      enc(
-        `--${formBoundary}\r\nContent-Disposition: form-data; name="message"\r\n\r\n${caption}\r\n`
-      )
-    );
-
-    bodyParts.push(enc(`--${formBoundary}--\r\n`));
-
-    const totalBody = Buffer.concat(bodyParts);
-
-    const res = await fetch(`${FB_GRAPH}/${pageId}/photos?access_token=${token}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": `multipart/form-data; boundary=${formBoundary}`,
-      },
-      body: totalBody,
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(`Facebook API error: ${JSON.stringify(data)}`);
+    // Attach all images as multipart
+    for (const buf of imageBuffers) {
+      const blob = new Blob([new Uint8Array(buf)], { type: "image/png" });
+      form.append("source", blob, "post.png");
     }
-
-    return data.id as string;
   }
 
-  const res = await fetch(`${FB_GRAPH}/${pageId}/feed`, {
+  const res = await fetch(`${FB_GRAPH}/${pageId}/photos?access_token=${token}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: caption, access_token: token }),
+    body: form,
   });
 
   const data = await res.json();

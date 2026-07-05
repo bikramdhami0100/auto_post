@@ -15,6 +15,7 @@ export type SubType = MotivationSubType | EnlightenmentSubType | LanguageSubType
 export interface WordEntry {
   nepali: string;
   target: string;
+  pronunciation: string;
   example: string;
 }
 
